@@ -1,0 +1,53 @@
+on:
+  push:
+    branches:
+      - release
+
+name: Build release
+
+jobs:
+  create-release:
+    runs-on: ubuntu-20.04
+    outputs:
+      release_id: ${{ steps.create-release.outputs.result }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: setup node
+        uses: actions/setup-node@v1
+        with:
+          node-version: 16
+      - name: get version
+        run: echo "PACKAGE_VERSION=$(node -p "require('./package.json').version")" >> $GITHUB_ENV
+      - name: create release
+        id: create-release
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { data } = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: `v${process.env.PACKAGE_VERSION}`,
+              name: `Atlas v${process.env.PACKAGE_VERSION}`,
+              body: '(test release)',
+              draft: true,
+              prerelease: true
+            })
+
+            return data.id
+  #build:
+  #  needs: create-release
+  #  runs-on: ubuntu-20.04
+  #  steps:
+  #    - uses: actions/checkout@v2
+  #    - name: Setup nodejs
+  #      uses: actions/setup-node@v1
+  #      with:
+  #        node-version: 16
+  #    - name: Build
+  #      run: node something.js
+  #    - name: Package
+  #      run: zip -r -q release.zip . -x node_modules/*
+  #    - name: Upload
+  #      run: curl -X POST https://content.minetest.net/api/packages/atlas/recluse4615/releases/new/ -H "Authorization: Bearer YOURTOKEN" -F title="Release" -F commit="" -F file=@release.zip
+
+  
