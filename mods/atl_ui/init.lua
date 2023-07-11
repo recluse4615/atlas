@@ -120,6 +120,28 @@ minetest.register_globalstep(function(dtime)
     end
 end)
 
+minetest.hud_replace_builtin("health", {
+    hud_elem_type = "statbar",
+    position = {
+        x = 0.5,
+        y = 1
+    },
+    name = "health",
+    text = "heart.png",
+    text2 = "heart_empty.png",
+    z_index = 100,
+    number = 13,
+    item = 20,
+    size = {
+        x = 16,
+        y = 16
+    },
+    direction = 0,
+    offset = {
+        x = -256,
+        y = -80
+    }
+})
 
 -- set default state
 minetest.register_on_joinplayer(function(player)
@@ -133,6 +155,27 @@ minetest.register_on_joinplayer(function(player)
     }
     set_hud_image(player, "usable", "")
     set_hud_image(player, "interactable", "")
+
+    player:hud_set_hotbar_image("gui_hotbar.png")
+    player:hud_set_hotbar_selected_image("gui_hotbar_selected.png")
+    player:hud_set_hotbar_itemcount(9)
+
+    --[[player:hud_add({
+        hud_elem_type = "image",
+        text = "gui_hotbar_border.png",
+        position = {
+            x = 0.5,
+            y = 1
+        },
+        scale = {
+            x = 1,
+            y = 1
+        },
+        offset = {
+            y = -91,
+            x = 0
+        }
+    })]]--
 end)
 
 minetest.register_on_leaveplayer(function(player)
