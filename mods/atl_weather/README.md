@@ -38,11 +38,34 @@ atl_weather.register_weather("weather name", {
 
     end,
 
+    -- optional, plays a looping sound whenever the light level changes
+    soundtrack = {
+        -- the name of the ambient sound you'd like to play
+        name = "atl_rain_light",
+        -- the gain of a track is calculated by the NATURAL light level (ie: the light level at your feet without any torches and at full daytime) divided by 15, with an adjustment and minimum
+        gain = {
+            -- how much gain is subtracted from the calculation. at full natural light AND 0.1 adjustment, the gain value would be 0.9
+            adjustment = 0.1,
+
+            -- clamps ((natural_light / 15) - gain_adjustment) to a specified minimum
+            min = 0.2
+        },
+        -- the start time of a track is determined by math.random(start_time.min, start_time.max)
+        start_time = {
+            -- minimum time, in seconds, to start the audio
+            min = 0,
+
+            -- maximum time, in seconds, to start the audio
+            max = 1
+        }
+    }
+
     -- optional, if this is true then the particle_spawners will get called dynamically based off of whether or not you're indoors
     toggle_particles = true,
 
     -- optional, used to define particle spawners for things like rain. when toggle_particles is false, this will only run at the same time on_enter is called
-    particle_spawners = function(player, y_offset)
+    -- is_indoors is calculated by the NATURAL light level (is_indoors = natural_light_level <= 8)
+    particle_spawners = function(player, is_indoors)
         local particle_table = {}
 
         particle_table[#particle_table + 1] = minetest.add_particlespawner({ ... })

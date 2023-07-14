@@ -1,25 +1,65 @@
 WEATHER_CHUNK_SIZE = 80
 PARTICLES_HIGH_OFFSET = 64
 
-atl_weather.registered_weathers = {}
-
-function atl_weather.register_weather(weather_name, weather_definition)
-    weather_definition.name = weather_name
-
-    weather_definition.particle_spawners = weather_definition.particle_spawners or function(player, y_offset) return {} end
-    weather_definition.toggle_particles = weather_definition.toggle_particles or false
-
-    -- todo: default sky
-    atl_weather.registered_weathers[weather_name] = weather_definition
+function atl_weather.color(r, g, b)
+    return {
+        r = r,
+        g = g,
+        b = b,
+        a = 255
+    }
 end
 
--- internal funcs
+local default_sky = {
+    -- base_color = color(255, 255, 255),
+    type = "regular",
+    clouds = true,
+    sky_color = {
+        day_sky = atl_weather.color(97, 181, 245),
+        day_horizon = atl_weather.color(144, 211, 246),
+        dawn_sky = atl_weather.color(180, 186, 250),
+        dawn_horizon = atl_weather.color(186, 193, 240),
+        night_sky = atl_weather.color(0, 107, 255),
+        night_horizon = atl_weather.color(64, 144, 255),
+        indoors = atl_weather.color(100, 100, 100),
+        fog_sun_tint = atl_weather.color(244, 125, 29),
+        fog_moon_tint = atl_weather.color(127, 153, 204)
+    },
+    -- todo
+    fog = {
+        fog_distance = -1,
+        fog_start = -1
+    }
+}
+
 -- map_cache is in the format of { weather_name = "xyz", duration = <time weather lasts for, in seconds>, time_spent = <time weather has been going, in seconds> }
 local map_cache = {}
 
 -- player_cache is in the format of { weather = "xyz", pos_hash = 123, last = { weather = "xyz", pos_hash = 123 }}
 local player_cache = {}
 
+atl_weather.registered_weathers = {}
+
+function atl_weather.register_weather(weather_name, weather_definition)
+    weather_definition.name = weather_name
+
+    weather_definition.particle_spawners = weather_definition.particle_spawners or function(player, is_indoors) return {} end
+    weather_definition.toggle_particles = weather_definition.toggle_particles or false
+    weather_definition.sky = weather_definition.sky or false
+    weather_definition.soundtrack = weather_definition.soundtrack or false
+
+    -- todo: default sky
+    atl_weather.registered_weathers[weather_name] = weather_definition
+end
+
+function atl_weather.lerp_sky(player, sky_definition, ticks)
+    local current_sky = player:get_sky(true)
+
+    current_sky.sky_color = sky_definition
+    player:set_sky(current_sky)
+end
+
+-- internal funcs
 local function _calculate_map_key(pos)
     local x = math.floor(pos.x / WEATHER_CHUNK_SIZE)
     local y = math.floor(pos.y / WEATHER_CHUNK_SIZE)
@@ -127,7 +167,24 @@ end
 -- apply weather effects to the player, if needed
 local function apply_weather_effects(player, weather_data)
     local weather = atl_weather.registered_weathers[weather_data.weather_name]
+    if weather.sky ~= false then
+        atl_weather.lerp_sky(player, weather.sky, 5)
+    end
     weather.on_enter(player)
+end
+
+local function unapply_weather_effects(player, weather_name)
+    local weather = atl_weather.registered_weathers[weather_name]
+
+    --[[if weather.toggle_particles == true then
+        local player_cache_data = 
+    end]]--
+
+    if weather.sky ~= false then
+        atl_weather.lerp_sky(player, default_sky.sky_color, 5)
+    end
+
+    weather.on_leave(player)
 end
 
 local function clear_particle_spawners(player_cache_data)
@@ -137,6 +194,46 @@ local function clear_particle_spawners(player_cache_data)
 
     player_cache_data.meta.particles = {}
     player_cache_data.meta.particles_applied = false
+    return player_cache_data
+end
+
+local function force_play_sound(player, player_cache_data, weather_definition)
+    -- fade out all existing soundtracks
+    for _, id in ipairs(player_cache_data.meta.soundtracks) do
+        minetest.sound_fade(id, 0.2, 0)
+    end
+
+    -- play new ones, todo handle both
+    local sound = weather_definition.soundtrack
+
+    local gain = (player_cache_data.meta.natural_light or 0) / 15
+    local gain_adjustment = sound.gain.adjustment or 0.1
+    local gain_min = sound.gain.min or 0.3
+
+    gain = gain - gain_adjustment
+
+    if gain < gain_min then
+        gain = gain_min
+    end
+
+    local start_time = 0
+    if sound.start_time ~= nil then
+        start_time = (math.random() * (sound.start_time.min - sound.start_time.max)) + sound.start_time.min
+    end
+
+    local sound_id = minetest.sound_play(sound.name, {
+        gain = 0.0001,
+        to_player = player:get_player_name(),
+        loop = true,
+        start_time = start_time
+    })
+
+    minetest.sound_fade(sound_id, 0.3, gain)
+
+    player_cache_data.meta.soundtracks = {
+        sound_id
+    }
+
     return player_cache_data
 end
 
@@ -178,7 +275,7 @@ local function tick_weather()
                     player_cache_data = clear_particle_spawners(player_cache_data)
                 end
 
-                last_weather.on_leave(player)
+                unapply_weather_effects(player, player_cache_data.weather)
             end
 
             apply_weather_effects(player, weather_data)
@@ -202,17 +299,20 @@ local function tick_weather()
 
             minetest.chat_send_player(player:get_player_name(), "changing particle spawners, yipee")
 
-            local y_offset = 0
-            if is_indoors then
-                y_offset = PARTICLES_HIGH_OFFSET
-            end
-
             if player_cache_data.meta.is_indoors ~= is_indoors then
                 player_cache_data = clear_particle_spawners(player_cache_data)
             end
 
             player_cache_data.meta.particles_applied = true
-            player_cache_data.meta.particles = current_weather_definition.particle_spawners(player, y_offset)
+            player_cache_data.meta.is_indoors = is_indoors
+            player_cache_data.meta.particles = current_weather_definition.particle_spawners(player, is_indoors)
+        end
+
+        -- update soundtrack if needed
+        if current_weather_definition.soundtrack ~= false and (math.abs(player_cache_data.meta.natural_light - natural_light_level) >= 2) then
+            player_cache_data.meta.natural_light = natural_light_level
+
+            player_cache_data = force_play_sound(player, player_cache_data, current_weather_definition)
         end
 
 
@@ -238,7 +338,9 @@ minetest.register_on_joinplayer(function(player)
             particles = {
             },
             particles_applied = false,
-            is_indoors = false
+            is_indoors = false,
+            natural_light = 0,
+            soundtracks = {}
         }
     }
 
