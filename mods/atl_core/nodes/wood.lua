@@ -104,3 +104,21 @@ minetest.register_craft({
         }
     }
 })
+
+minetest.register_craft({
+    type = "fuel",
+    recipe = "group:wood_planks",
+    burntime = 2
+})
+
+minetest.register_craft({
+    type = "fuel",
+    recipe = "group:log",
+    burntime = 8
+})
+
+minetest.register_craft({
+    type = "fuel",
+    recipe = "atl_core:stick",
+    burntime = 1
+})

@@ -63,7 +63,11 @@ atl_ores.ores = {
         name = "bronze",
         colour = "#D3A068",
         group_level = 3,
-        type = "composite"
+        type = "composite",
+        recipe = {
+            "atl_ores:copper_ingot",
+            "atl_ores:tin_ingot"
+        }
     },
     {
         name = "iron",
@@ -127,13 +131,21 @@ atl_ores.ores = {
         name = "corinthite",
         colour = "#EDE193",
         group_level = 2,
-        type = "composite"
+        type = "composite",
+        recipe = {
+            "atl_ores:bronze_ingot",
+            "atl_ores:gold_ingot"
+        }
     },
     {
         name = "steel",
         colour = "#45444F",
         group_level = 1,
-        type = "composite"
+        type = "composite",
+        recipe = {
+            "atl_ores:iron_ingot",
+            "atl_ores:coal_lump"
+        }
     }
 }
 
@@ -143,6 +155,7 @@ atl_ores.minerals = {
         colour = "#212123",
         group_level = 5,
         type = "mineral",
+        burn_time = 40,
         layers = {
             {
                 clust_scarcity = 12 * 12 * 12,
@@ -268,17 +281,9 @@ for _, ore in ipairs(atl_ores.ores) do
             }
         })
 
-        -- temp: craft lumps -> ingot
-        minetest.register_craft({
-            output = "atl_ores:" .. ore.name .. "_ingot",
-            recipe = {
-                {
-                    "atl_ores:" .. ore.name .. "_lump"
-                }
-            }
-        })
+        atl_core.register_cookable("atl_ores:" .. ore.name .. "_lump", "atl_ores:" .. ore.name .. "_ingot")
+
         for _, layer in ipairs(ore.layers) do
-            
             minetest.register_ore({
                 ore_type = "scatter",
                 ore = "atl_ores:" .. ore.name .. "_stone_ore",
@@ -290,6 +295,8 @@ for _, ore in ipairs(atl_ores.ores) do
                 y_min = layer.y_max
             })
         end
+    elseif ore.type == "composite" then
+        atl_core.register_cookable(ore.recipe, "atl_ores:" .. ore.name .. "_ingot")
     end
 end
 
@@ -328,6 +335,16 @@ for _, mineral in ipairs(atl_ores.minerals) do
             clust_size = layer.clust_size,
             y_max = layer.y_min,
             y_min = layer.y_max
+        })
+    end
+
+    local burn_time = mineral.burn_time or 0
+
+    if burn_time > 0 then
+        minetest.register_craft({
+            type = "fuel",
+            recipe = "atl_ores:" .. mineral.name .."_lump",
+            burntime = burn_time
         })
     end
 end
