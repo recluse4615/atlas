@@ -6,6 +6,7 @@ atl_ores.ores = {
         colour = "#F2F0E5",
         group_level = 4,
         type = "ore",
+        tier = 2,
         layers = {
             {
                 clust_scarcity = 24 * 24 * 24,
@@ -35,6 +36,7 @@ atl_ores.ores = {
         colour = "#A77B5B",
         group_level = 4,
         type = "ore",
+        tier = 2,
         layers = {
             {
                 clust_scarcity = 24 * 24 * 24,
@@ -64,6 +66,7 @@ atl_ores.ores = {
         colour = "#D3A068",
         group_level = 3,
         type = "composite",
+        tier = 2,
         recipe = {
             "atl_ores:copper_ingot",
             "atl_ores:tin_ingot"
@@ -74,6 +77,7 @@ atl_ores.ores = {
         colour = "#B8B5B9",
         group_level = 3,
         type = "ore",
+        tier = 3,
         layers = {
             {
                 clust_scarcity = 24 * 24 * 24,
@@ -103,6 +107,7 @@ atl_ores.ores = {
         colour = "#FBD949", -- todo: replace
         group_level = 3,
         type = "ore",
+        tier = 4,
         layers = {
             {
                 clust_scarcity = 24 * 24 * 24,
@@ -132,6 +137,7 @@ atl_ores.ores = {
         colour = "#EDE193",
         group_level = 2,
         type = "composite",
+        tier = 4,
         recipe = {
             "atl_ores:bronze_ingot",
             "atl_ores:gold_ingot"
@@ -142,6 +148,7 @@ atl_ores.ores = {
         colour = "#45444F",
         group_level = 1,
         type = "composite",
+        tier = 5,
         recipe = {
             "atl_ores:iron_ingot",
             "atl_ores:coal_lump"
@@ -256,7 +263,10 @@ for _, ore in ipairs(atl_ores.ores) do
     -- create ingot
     minetest.register_craftitem("atl_ores:" .. ore.name .. "_ingot", {
         description = name .. " Ingot",
-        inventory_image = "atl_ingot.png^[multiply:" .. ore.colour
+        inventory_image = "atl_ingot.png^[multiply:" .. ore.colour,
+        groups = {
+            _atl_tier = ore.tier
+        }
     })
 
     -- register regular stone variant
@@ -267,7 +277,8 @@ for _, ore in ipairs(atl_ores.ores) do
                 "atl_stone.png^(atl_ore.png^[multiply:" .. ore.colour .. ")"
             },
             groups = {
-                cracky = ore.group_level
+                cracky = ore.group_level,
+                _atl_tier = ore.tier
             },
             drop = "atl_ores:" .. ore.name .. "_lump"
         })
@@ -277,7 +288,8 @@ for _, ore in ipairs(atl_ores.ores) do
             description = "Raw " .. name,
             inventory_image = "atl_lump.png^[multiply:" .. ore.colour,
             groups = {
-                smeltable = 1
+                smeltable = 1,
+                _atl_tier = ore.tier
             }
         })
 

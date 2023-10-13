@@ -61,6 +61,9 @@ for _, tier in ipairs(atl_tools.tiers) do
                 },
                 {
                     "", "", tier.material
+                },
+                {
+                    "", "", tier.material
                 }
             }
         })

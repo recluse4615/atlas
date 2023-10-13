@@ -32,6 +32,14 @@ local function update_descriptions()
         end
         minetest.override_item(name, { description = desc, _atl_original_description = def.description })
     end
+
+    for name, def in pairs(minetest.registered_craftitems) do
+        local desc = def.description
+        if def.groups._atl_tier ~= nil then
+            desc = desc .. "\n" .. minetest.colorize("#333333", "tier " .. def.groups._atl_tier .. " " .. get_tool_type(def.groups._atl_tool_type))
+        end
+        minetest.override_item(name, { description = desc, _atl_original_description = def.description })
+    end
 end
 
 minetest.register_on_mods_loaded(update_descriptions)
